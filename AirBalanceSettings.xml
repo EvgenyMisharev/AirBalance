@@ -1,0 +1,10 @@
+<?xml version="1.0"?>
+<AirBalanceSettings xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <SupplySystemNamesParamName>ADSK_Наименование приточной системы</SupplySystemNamesParamName>
+  <SupplySystemNamesPrefix>П</SupplySystemNamesPrefix>
+  <ExhaustSystemNamesParamName>ADSK_Наименование вытяжной системы</ExhaustSystemNamesParamName>
+  <ExhaustSystemNamesPrefix>В</ExhaustSystemNamesPrefix>
+  <AirConsumptionParamName>ADSK_Расход воздуха</AirConsumptionParamName>
+  <EstimatedSupplyParamName>Фактический_Приток</EstimatedSupplyParamName>
+  <EstimatedExhaustParamName>Фактическая_Вытяжка</EstimatedExhaustParamName>
+</AirBalanceSettings>
