@@ -5,6 +5,7 @@
   <ExhaustSystemNamesParamName>ADSK_Наименование вытяжной системы</ExhaustSystemNamesParamName>
   <ExhaustSystemNamesPrefix>В</ExhaustSystemNamesPrefix>
   <AirConsumptionParamName>ADSK_Расход воздуха</AirConsumptionParamName>
-  <EstimatedSupplyParamName>Фактический_Приток</EstimatedSupplyParamName>
-  <EstimatedExhaustParamName>Фактическая_Вытяжка</EstimatedExhaustParamName>
+  <EstimatedSupplyParamName>ADSK_Расчетный приток</EstimatedSupplyParamName>
+  <EstimatedExhaustParamName>ADSK_Расчетная вытяжка</EstimatedExhaustParamName>
+  <CalculationOptionButtonName>rbt_AllProject</CalculationOptionButtonName>
 </AirBalanceSettings>

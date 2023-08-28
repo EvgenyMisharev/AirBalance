@@ -18,6 +18,7 @@ namespace AirBalance
         public string AirConsumptionParamName { get; set; }
         public string EstimatedSupplyParamName { get; set; }
         public string EstimatedExhaustParamName { get; set; }
+        public string CalculationOptionButtonName { get; set; }
 
         public AirBalanceSettings GetSettings()
         {

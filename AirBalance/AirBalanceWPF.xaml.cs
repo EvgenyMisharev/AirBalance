@@ -3,6 +3,7 @@ using Autodesk.Revit.DB.Mechanical;
 using System.Collections.Generic;
 using System.Linq;
 using System.Windows;
+using System.Windows.Controls;
 using System.Windows.Input;
 
 namespace AirBalance
@@ -21,6 +22,7 @@ namespace AirBalance
         List<Parameter> SpaceStringParametersList;
         List<Parameter> SpaceDoubleParametersList;
         List<Parameter> DuctTerminalDoubleParametersList;
+        public string CalculationOptionButtonName;
 
         AirBalanceSettings AirBalanceSettingsItem;
         public AirBalanceWPF(List<Space> spaceList, List<FamilyInstance> ductTerminalList)
@@ -115,6 +117,15 @@ namespace AirBalance
                 {
                     comboBox_EstimatedExhaustParam.SelectedItem = comboBox_EstimatedExhaustParam.Items[0];
                 }
+
+                if (AirBalanceSettingsItem.CalculationOptionButtonName == "rbt_AllProject")
+                {
+                    rbt_AllProject.IsChecked = true;
+                }
+                else
+                {
+                    rbt_SelectedItems.IsChecked = true;
+                }
             }
             else
             {
@@ -125,6 +136,7 @@ namespace AirBalance
                 comboBox_AirConsumptionParam.SelectedItem = comboBox_AirConsumptionParam.Items[0];
                 comboBox_EstimatedSupplyParam.SelectedItem = comboBox_EstimatedSupplyParam.Items[0];
                 comboBox_EstimatedExhaustParam.SelectedItem = comboBox_EstimatedExhaustParam.Items[0];
+                rbt_AllProject.IsChecked = true;
             }
         }
         private void btn_Ok_Click(object sender, RoutedEventArgs e)
@@ -178,6 +190,13 @@ namespace AirBalance
 
             EstimatedExhaustParam = comboBox_EstimatedExhaustParam.SelectedItem as Parameter;
             AirBalanceSettingsItem.EstimatedExhaustParamName = EstimatedExhaustParam.Definition.Name;
+
+            CalculationOptionButtonName = (groupBox_CalculationOption.Content as System.Windows.Controls.Grid)
+                .Children.OfType<RadioButton>()
+                .FirstOrDefault(rb => rb.IsChecked.Value == true)
+                .Name;
+
+            AirBalanceSettingsItem.CalculationOptionButtonName = CalculationOptionButtonName;
 
             AirBalanceSettingsItem.SaveSettings();
         }

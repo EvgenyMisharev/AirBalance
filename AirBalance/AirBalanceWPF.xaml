@@ -7,30 +7,44 @@
              mc:Ignorable="d" 
              Title="Баланс воздуха"
              WindowStyle="SingleBorderWindow" ResizeMode="NoResize" Icon="Resources/citrus.ico" WindowStartupLocation="CenterScreen"
-             Height="520" Width="390" MinHeight="520" MinWidth="390" MaxHeight="520" MaxWidth="390"
+             Height="600" Width="390" MinHeight="600" MinWidth="390" MaxHeight="600" MaxWidth="390"
              KeyDown="AirBalanceWPF_KeyDown">
     <Grid>
-        <Label x:Name="label_SupplySystemNames" Content="Выберите параметр для наименований приточных систем:" Margin="10,10,10,0" VerticalAlignment="Top"/>
-        <ComboBox x:Name="comboBox_SupplySystemNamesParam" Margin="10,35,10,0" VerticalAlignment="Top" Height="26" VerticalContentAlignment="Center"/>
+        <StackPanel>
+            <Label x:Name="label_SupplySystemNames" Content="Выберите параметр для наименований приточных систем:" Margin="10,10,10,0" VerticalAlignment="Top"/>
+            <ComboBox x:Name="comboBox_SupplySystemNamesParam" Margin="10,0" VerticalAlignment="Top" Height="26" VerticalContentAlignment="Center"/>
 
-        <Label x:Name="label_SupplySystemNamesPrefix" Content="Укажите через запятую префиксы приточных систем:" Margin="10,70,10,0" VerticalAlignment="Top"/>
-        <TextBox x:Name="textBox_SupplySystemNamesPrefix" Height="26" Margin="10,95,10,0" TextWrapping="Wrap" Text="П" VerticalAlignment="Top" VerticalContentAlignment="Center"/>
+            <Label x:Name="label_SupplySystemNamesPrefix" Content="Укажите через запятую префиксы приточных систем:" Margin="10,10,10,0" VerticalAlignment="Top"/>
+            <TextBox x:Name="textBox_SupplySystemNamesPrefix" Height="26" Margin="10,0" TextWrapping="Wrap" Text="П" VerticalAlignment="Top" VerticalContentAlignment="Center"/>
 
-        <Label x:Name="label_ExhaustSystemNames" Content="Выберите параметр для наименований вытяжных систем:" Margin="10,130,10,0" VerticalAlignment="Top"/>
-        <ComboBox x:Name="comboBox_ExhaustSystemNamesParam" Margin="10,155,10,0" VerticalAlignment="Top" Height="26" VerticalContentAlignment="Center"/>
+            <Label x:Name="label_ExhaustSystemNames" Content="Выберите параметр для наименований вытяжных систем:" Margin="10,10,10,0" VerticalAlignment="Top"/>
+            <ComboBox x:Name="comboBox_ExhaustSystemNamesParam" Margin="10,0" VerticalAlignment="Top" Height="26" VerticalContentAlignment="Center"/>
 
-        <Label x:Name="label_ExhaustSystemNamesPrefix" Content="Укажите через запятую префиксы вытяжных систем:" Margin="10,190,10,0" VerticalAlignment="Top"/>
-        <TextBox x:Name="textBox_ExhaustSystemNamesPrefix" Height="26" Margin="10,215,10,0" TextWrapping="Wrap" Text="В" VerticalAlignment="Top" VerticalContentAlignment="Center"/>
+            <Label x:Name="label_ExhaustSystemNamesPrefix" Content="Укажите через запятую префиксы вытяжных систем:" Margin="10,10,10,0" VerticalAlignment="Top"/>
+            <TextBox x:Name="textBox_ExhaustSystemNamesPrefix" Height="26" Margin="10,0" TextWrapping="Wrap" Text="В" VerticalAlignment="Top" VerticalContentAlignment="Center"/>
 
-        <Label x:Name="label_AirConsumption" Content="Выберите параметр расход воздуха воздухораспределителей:" Margin="10,250,10,0" VerticalAlignment="Top"/>
-        <ComboBox x:Name="comboBox_AirConsumptionParam" Margin="10,275,10,0" VerticalAlignment="Top" Height="26" VerticalContentAlignment="Center"/>
+            <Label x:Name="label_AirConsumption" Content="Выберите параметр расход воздуха воздухораспределителей:" Margin="10,10,10,0" VerticalAlignment="Top"/>
+            <ComboBox x:Name="comboBox_AirConsumptionParam" Margin="10,0" VerticalAlignment="Top" Height="26" VerticalContentAlignment="Center"/>
 
-        <Label x:Name="label_EstimatedSupply" Content="Выберите параметр для записи суммарного притока:" Margin="10,310,10,0" VerticalAlignment="Top"/>
-        <ComboBox x:Name="comboBox_EstimatedSupplyParam" Margin="10,335,10,0" VerticalAlignment="Top" Height="26" VerticalContentAlignment="Center"/>
+            <Label x:Name="label_EstimatedSupply" Content="Выберите параметр для записи суммарного притока:" Margin="10,10,10,0" VerticalAlignment="Top"/>
+            <ComboBox x:Name="comboBox_EstimatedSupplyParam" Margin="6,0,10,0" VerticalAlignment="Top" Height="26" VerticalContentAlignment="Center"/>
 
-        <Label x:Name="label_EstimatedExhaust" Content="Выберите параметр для записи суммарной вытяжки:" Margin="10,370,10,0" VerticalAlignment="Top"/>
-        <ComboBox x:Name="comboBox_EstimatedExhaustParam" Margin="10,395,10,0" VerticalAlignment="Top" Height="26" VerticalContentAlignment="Center"/>
-         
+            <Label x:Name="label_EstimatedExhaust" Content="Выберите параметр для записи суммарной вытяжки:" Margin="10,10,10,0" VerticalAlignment="Top"/>
+            <ComboBox x:Name="comboBox_EstimatedExhaustParam" Margin="10,0" VerticalAlignment="Top" Height="26" VerticalContentAlignment="Center"/>
+
+            <GroupBox x:Name="groupBox_CalculationOption" Header="Выберите опцию:" Margin="10,10,10,50">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="145"/>
+                        <ColumnDefinition/>
+                    </Grid.ColumnDefinitions>
+                    <RadioButton x:Name="rbt_AllProject" Content="Во всем проекте" Margin="10,10,0,10" IsChecked="True" HorizontalAlignment="Center" VerticalContentAlignment="Center" Padding="5,0,0,0" VerticalAlignment="Center"/>
+                    <RadioButton x:Name="rbt_SelectedItems" Content="В выбранных пространствах" Grid.Column="1" Margin="10,10,0,10" HorizontalAlignment="Center" VerticalContentAlignment="Center" Padding="5,0,0,0" VerticalAlignment="Center"/>
+                </Grid>
+            </GroupBox>
+        </StackPanel>
+
+
         <Button x:Name="btn_Ok" Content="Ок" HorizontalAlignment="Right" Margin="0,0,125,10" VerticalAlignment="Bottom" Width="100" Height="25" Click="btn_Ok_Click"/>
         <Button x:Name="btn_Cancel" Content="Отмена" HorizontalAlignment="Right" Margin="0,0,10,10" VerticalAlignment="Bottom" Width="100" Height="25" Click="btn_Cancel_Click" Grid.Column="1" Grid.Row="1"/>
     </Grid>

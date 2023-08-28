@@ -1,6 +1,7 @@
 ﻿using Autodesk.Revit.DB;
 using Autodesk.Revit.DB.Mechanical;
 using Autodesk.Revit.UI;
+using Autodesk.Revit.UI.Selection;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -17,6 +18,8 @@ namespace AirBalance
         public Result Execute(ExternalCommandData commandData, ref string message, ElementSet elements)
         {
             Document doc = commandData.Application.ActiveUIDocument.Document;
+            Selection sel = commandData.Application.ActiveUIDocument.Selection;
+
             List<Space> spaceList = new FilteredElementCollector(doc)
                 .WhereElementIsNotElementType()
                 .OfCategory(BuiltInCategory.OST_MEPSpaces)
@@ -58,6 +61,30 @@ namespace AirBalance
 
             List<string> supplySystemNamesPrefixList = supplySystemNamesPrefix.Split(',').Select(str => str.Trim()).ToList();
             List<string> exhaustSystemNamesPrefixList = exhaustSystemNamesPrefix.Split(',').Select(str => str.Trim()).ToList();
+
+            string calculationOptionButtonName = airBalanceWPF.CalculationOptionButtonName;
+            if(calculationOptionButtonName == "rbt_SelectedItems")
+            {
+                SpaceSelectionFilter holesSelectionFilter = new SpaceSelectionFilter();
+                IList<Reference> selSpaces = null;
+                try
+                {
+                    selSpaces = sel.PickObjects(ObjectType.Element, holesSelectionFilter, "Выберите пространства!");
+                }
+                catch (Autodesk.Revit.Exceptions.OperationCanceledException)
+                {
+                    return Result.Cancelled;
+                }
+
+                spaceList = new List<Space>();
+                foreach (Reference roomRef in selSpaces)
+                {
+                    if ((doc.GetElement(roomRef) as Space) != null)
+                    {
+                        spaceList.Add(doc.GetElement(roomRef) as Space);
+                    }
+                }
+            }
 
             using (Transaction t = new Transaction(doc))
             {
