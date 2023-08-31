@@ -65,21 +65,22 @@ namespace AirBalance
             string calculationOptionButtonName = airBalanceWPF.CalculationOptionButtonName;
             if(calculationOptionButtonName == "rbt_SelectedItems")
             {
-                SpaceSelectionFilter holesSelectionFilter = new SpaceSelectionFilter();
-                IList<Reference> selSpaces = null;
-                try
-                {
-                    selSpaces = sel.PickObjects(ObjectType.Element, holesSelectionFilter, "Выберите пространства!");
-                }
-                catch (Autodesk.Revit.Exceptions.OperationCanceledException)
-                {
-                    return Result.Cancelled;
-                }
-
                 spaceList = new List<Space>();
-                foreach (Reference roomRef in selSpaces)
+                SpaceSelectionFilter spaceSelectionFilter = new SpaceSelectionFilter();
+                IList<Reference> selSpaces = null;
+                spaceList = GetSpacesFromCurrentSelection(doc, sel);
+                if (spaceList.Count == 0)
                 {
-                    if ((doc.GetElement(roomRef) as Space) != null)
+                    try
+                    {
+                        selSpaces = sel.PickObjects(ObjectType.Element, spaceSelectionFilter, "Выберите пространства!");
+                    }
+                    catch (Autodesk.Revit.Exceptions.OperationCanceledException)
+                    {
+                        return Result.Cancelled;
+                    }
+
+                    foreach (Reference roomRef in selSpaces)
                     {
                         spaceList.Add(doc.GetElement(roomRef) as Space);
                     }
@@ -179,6 +180,21 @@ namespace AirBalance
             airBalanceProgressBarWPF = new AirBalanceProgressBarWPF();
             airBalanceProgressBarWPF.Show();
             System.Windows.Threading.Dispatcher.Run();
+        }
+        private static List<Space> GetSpacesFromCurrentSelection(Document doc, Selection sel)
+        {
+            ICollection<ElementId> selectedIds = sel.GetElementIds();
+            List<Space> tempSpacessList = new List<Space>();
+            foreach (ElementId roomId in selectedIds)
+            {
+                if (doc.GetElement(roomId) is Space
+                    && null != doc.GetElement(roomId).Category
+                    && doc.GetElement(roomId).Category.Id.IntegerValue.Equals((int)BuiltInCategory.OST_MEPSpaces))
+                {
+                    tempSpacessList.Add(doc.GetElement(roomId) as Space);
+                }
+            }
+            return tempSpacessList;
         }
     }
 }
