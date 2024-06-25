@@ -30,6 +30,7 @@ namespace AirBalance
                 .WhereElementIsNotElementType()
                 .OfCategory(BuiltInCategory.OST_MEPSpaces)
                 .Cast<Space>()
+                .Where(s =>s.Volume > 0)
                 .OrderBy(sp => sp.Number, new AlphanumComparatorFastString())
                 .ToList();
             if (spaceList.Count == 0)
@@ -88,7 +89,11 @@ namespace AirBalance
 
                     foreach (Reference roomRef in selSpaces)
                     {
-                        spaceList.Add(doc.GetElement(roomRef) as Space);
+                        var space = doc.GetElement(roomRef) as Space;
+                        if (space != null && space.Volume > 0)
+                        {
+                            spaceList.Add(doc.GetElement(roomRef) as Space);
+                        }
                     }
                 }
             }
