@@ -30,9 +30,10 @@ namespace AirBalance
                 .WhereElementIsNotElementType()
                 .OfCategory(BuiltInCategory.OST_MEPSpaces)
                 .Cast<Space>()
-                .Where(s =>s.Volume > 0)
+                .Where(s => s.Volume > 0)
                 .OrderBy(sp => sp.Number, new AlphanumComparatorFastString())
                 .ToList();
+
             if (spaceList.Count == 0)
             {
                 TaskDialog.Show("Revit", "Пространства отсутствуют в проекте!");
@@ -44,6 +45,7 @@ namespace AirBalance
                 .OfCategory(BuiltInCategory.OST_DuctTerminal)
                 .Cast<FamilyInstance>()
                 .ToList();
+
             if (ductTerminalList.Count == 0)
             {
                 TaskDialog.Show("Revit", "Воздухораспределители отсутствуют в проекте!");
@@ -52,6 +54,7 @@ namespace AirBalance
 
             AirBalanceWPF airBalanceWPF = new AirBalanceWPF(spaceList, ductTerminalList);
             airBalanceWPF.ShowDialog();
+
             if (airBalanceWPF.DialogResult != true)
             {
                 return Result.Cancelled;
@@ -70,30 +73,28 @@ namespace AirBalance
             List<string> exhaustSystemNamesPrefixList = exhaustSystemNamesPrefix.Split(',').Select(str => str.Trim()).ToList();
 
             string calculationOptionButtonName = airBalanceWPF.CalculationOptionButtonName;
+
             if (calculationOptionButtonName == "rbt_SelectedItems")
             {
-                spaceList = new List<Space>();
-                SpaceSelectionFilter spaceSelectionFilter = new SpaceSelectionFilter();
-                IList<Reference> selSpaces = null;
                 spaceList = GetSpacesFromCurrentSelection(doc, sel);
-                if (spaceList.Count == 0)
+
+                if (!spaceList.Any())
                 {
                     try
                     {
-                        selSpaces = sel.PickObjects(ObjectType.Element, spaceSelectionFilter, "Выберите пространства!");
+                        IList<Reference> selSpaces = sel.PickObjects(ObjectType.Element, new SpaceSelectionFilter(), "Выберите пространства!");
+                        foreach (Reference roomRef in selSpaces)
+                        {
+                            var space = doc.GetElement(roomRef) as Space;
+                            if (space != null && space.Volume > 0)
+                            {
+                                spaceList.Add(space);
+                            }
+                        }
                     }
                     catch (Autodesk.Revit.Exceptions.OperationCanceledException)
                     {
                         return Result.Cancelled;
-                    }
-
-                    foreach (Reference roomRef in selSpaces)
-                    {
-                        var space = doc.GetElement(roomRef) as Space;
-                        if (space != null && space.Volume > 0)
-                        {
-                            spaceList.Add(doc.GetElement(roomRef) as Space);
-                        }
                     }
                 }
             }
@@ -101,89 +102,88 @@ namespace AirBalance
             using (Transaction t = new Transaction(doc))
             {
                 t.Start("Баланс воздухообмена");
+
+                // Запуск прогресс-бара в отдельном потоке
                 Thread newWindowThread = new Thread(new ThreadStart(ThreadStartingPoint));
                 newWindowThread.SetApartmentState(ApartmentState.STA);
                 newWindowThread.IsBackground = true;
                 newWindowThread.Start();
-                int step = 0;
+
                 Thread.Sleep(100);
-                airBalanceProgressBarWPF.pb_AirBalanceProgressBar.Dispatcher.Invoke(() => airBalanceProgressBarWPF.pb_AirBalanceProgressBar.Minimum = 0);
-                airBalanceProgressBarWPF.pb_AirBalanceProgressBar.Dispatcher.Invoke(() => airBalanceProgressBarWPF.pb_AirBalanceProgressBar.Maximum = spaceList.Count);
+
+                int step = 0;
+
+                airBalanceProgressBarWPF.Dispatcher.Invoke(() =>
+                {
+                    airBalanceProgressBarWPF.pb_AirBalanceProgressBar.Minimum = 0;
+                    airBalanceProgressBarWPF.pb_AirBalanceProgressBar.Maximum = spaceList.Count;
+                });
+
+                var terminalList = new FilteredElementCollector(doc)
+                        .WhereElementIsNotElementType()
+                        .OfCategory(BuiltInCategory.OST_DuctTerminal)
+                        .Cast<FamilyInstance>()
+                        .Where(dt => dt.get_Parameter(BuiltInParameter.RBS_SYSTEM_NAME_PARAM).AsString() != null)
+                        .GroupBy(f => f.Space?.Id.IntegerValue)
+                        .ToList();
+
                 foreach (Space space in spaceList)
                 {
                     step++;
-                    airBalanceProgressBarWPF.pb_AirBalanceProgressBar.Dispatcher.Invoke(() => airBalanceProgressBarWPF.pb_AirBalanceProgressBar.Value = step);
-                    airBalanceProgressBarWPF.pb_AirBalanceProgressBar.Dispatcher.Invoke(() => airBalanceProgressBarWPF.label_ItemName.Content = space.Name);
+                    airBalanceProgressBarWPF.Dispatcher.Invoke(() =>
+                    {
+                        airBalanceProgressBarWPF.pb_AirBalanceProgressBar.Value = step;
+                        airBalanceProgressBarWPF.label_ItemName.Content = space.Name;
+                    });
 
-                    List<FamilyInstance> tmpDuctTerminalList = ductTerminalList
-                        .Where(dt => dt.Space != null)
-                        .Where(dt => dt.Space.Id == space.Id)
-                        .Where(dt => dt.get_Parameter(BuiltInParameter.RBS_SYSTEM_NAME_PARAM).AsString() != null)
-                        .ToList();
+                    var tmpDuctTerminalGroup = terminalList.SingleOrDefault(e => e.Key == space.Id.IntegerValue);
+                    if (tmpDuctTerminalGroup == null) continue;
+
+                    var tmpDuctTerminalList = tmpDuctTerminalGroup.ToList();
 
                     List<string> supplySystemNameList = new List<string>();
                     List<string> exhaustSystemNameList = new List<string>();
                     double estimatedSupply = 0;
                     double estimatedExhaust = 0;
+
                     foreach (FamilyInstance ductTerminal in tmpDuctTerminalList)
                     {
-                        if (ductTerminal.get_Parameter(BuiltInParameter.RBS_SYSTEM_NAME_PARAM) != null)
+                        string systemName = ductTerminal.get_Parameter(BuiltInParameter.RBS_SYSTEM_NAME_PARAM).AsString();
+
+                        if (supplySystemNamesPrefixList.Any(prefix => systemName.StartsWith(prefix)))
                         {
-                            string systemName = ductTerminal.get_Parameter(BuiltInParameter.RBS_SYSTEM_NAME_PARAM).AsString();
-                            if (supplySystemNamesPrefixList.Any(prefix => systemName.StartsWith(prefix)))
+                            if (!supplySystemNameList.Contains(systemName))
                             {
-                                if (!supplySystemNameList.Contains(systemName))
-                                {
-                                    supplySystemNameList.Add(systemName);
-                                }
-                                estimatedSupply += ductTerminal.get_Parameter(airConsumptionParam.Definition).AsDouble();
+                                supplySystemNameList.Add(systemName);
                             }
-                            else if (exhaustSystemNamesPrefixList.Any(prefix => systemName.StartsWith(prefix)))
+                            estimatedSupply += ductTerminal.get_Parameter(airConsumptionParam.Definition).AsDouble();
+                        }
+                        else if (exhaustSystemNamesPrefixList.Any(prefix => systemName.StartsWith(prefix)))
+                        {
+                            if (!exhaustSystemNameList.Contains(systemName))
                             {
-                                if (!exhaustSystemNameList.Contains(systemName))
-                                {
-                                    exhaustSystemNameList.Add(systemName);
-                                }
-                                estimatedExhaust += ductTerminal.get_Parameter(airConsumptionParam.Definition).AsDouble();
+                                exhaustSystemNameList.Add(systemName);
                             }
+                            estimatedExhaust += ductTerminal.get_Parameter(airConsumptionParam.Definition).AsDouble();
                         }
                     }
+
                     supplySystemNameList.Sort(new AlphanumComparatorFastString());
                     exhaustSystemNameList.Sort(new AlphanumComparatorFastString());
 
-                    string supplySystemNames = "";
-                    foreach (string sn in supplySystemNameList)
-                    {
-                        if (supplySystemNames == "")
-                        {
-                            supplySystemNames = sn;
-                        }
-                        else
-                        {
-                            supplySystemNames += ", " + sn;
-                        }
-                    }
-                    space.get_Parameter(supplySystemNamesParam.Definition).Set(supplySystemNames);
+                    string supplySystemNames = string.Join(", ", supplySystemNameList);
+                    string exhaustSystemNames = string.Join(", ", exhaustSystemNameList);
 
-                    string exhaustSystemNames = "";
-                    foreach (string sn in exhaustSystemNameList)
-                    {
-                        if (exhaustSystemNames == "")
-                        {
-                            exhaustSystemNames = sn;
-                        }
-                        else
-                        {
-                            exhaustSystemNames += ", " + sn;
-                        }
-                    }
+                    space.get_Parameter(supplySystemNamesParam.Definition).Set(supplySystemNames);
                     space.get_Parameter(exhaustSystemNamesParam.Definition).Set(exhaustSystemNames);
                     space.get_Parameter(estimatedSupplyParam.Definition).Set(estimatedSupply);
                     space.get_Parameter(estimatedExhaustParam.Definition).Set(estimatedExhaust);
                 }
+
                 airBalanceProgressBarWPF.Dispatcher.Invoke(() => airBalanceProgressBarWPF.Close());
                 t.Commit();
             }
+
             return Result.Succeeded;
         }
         private void ThreadStartingPoint()
@@ -196,20 +196,20 @@ namespace AirBalance
         {
             ICollection<ElementId> selectedIds = sel.GetElementIds();
             List<Space> tempSpacessList = new List<Space>();
+
             foreach (ElementId roomId in selectedIds)
             {
-                if (doc.GetElement(roomId) is Space
-                    && null != doc.GetElement(roomId).Category
-                    && doc.GetElement(roomId).Category.Id.IntegerValue.Equals((int)BuiltInCategory.OST_MEPSpaces))
+                Space space = doc.GetElement(roomId) as Space;
+                if (space != null && space.Category != null && space.Category.Id.IntegerValue.Equals((int)BuiltInCategory.OST_MEPSpaces))
                 {
-                    tempSpacessList.Add(doc.GetElement(roomId) as Space);
+                    tempSpacessList.Add(space);
                 }
             }
+
             return tempSpacessList;
         }
         private static void GetPluginStartInfo()
         {
-            // Получаем сборку, в которой выполняется текущий код
             Assembly thisAssembly = Assembly.GetExecutingAssembly();
             string assemblyName = "AirBalance";
             string assemblyNameRus = "Фактический воздухообмен";
@@ -220,13 +220,16 @@ namespace AirBalance
 
             Assembly assembly = Assembly.LoadFrom(dllPath);
             Type type = assembly.GetType("PluginInfoCollector.InfoCollector");
-            var constructor = type.GetConstructor(new Type[] { typeof(string), typeof(string) });
 
             if (type != null)
             {
-                // Создание экземпляра класса
-                object instance = Activator.CreateInstance(type, new object[] { assemblyName, assemblyNameRus });
+                var constructor = type.GetConstructor(new Type[] { typeof(string), typeof(string) });
+                if (constructor != null)
+                {
+                    Activator.CreateInstance(type, new object[] { assemblyName, assemblyNameRus });
+                }
             }
         }
+
     }
 }

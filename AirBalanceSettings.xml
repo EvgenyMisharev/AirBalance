@@ -7,5 +7,5 @@
   <AirConsumptionParamName>ADSK_Расход воздуха</AirConsumptionParamName>
   <EstimatedSupplyParamName>ADSK_Расчетный приток</EstimatedSupplyParamName>
   <EstimatedExhaustParamName>ADSK_Расчетная вытяжка</EstimatedExhaustParamName>
-  <CalculationOptionButtonName>rbt_SelectedItems</CalculationOptionButtonName>
+  <CalculationOptionButtonName>rbt_AllProject</CalculationOptionButtonName>
 </AirBalanceSettings>
