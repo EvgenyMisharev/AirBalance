@@ -8,6 +8,7 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Threading;
+using System.Threading.Tasks;
 
 namespace AirBalance
 {
@@ -19,7 +20,7 @@ namespace AirBalance
         {
             try
             {
-                GetPluginStartInfo();
+                _ = GetPluginStartInfo();
             }
             catch { }
 
@@ -124,7 +125,7 @@ namespace AirBalance
                         .OfCategory(BuiltInCategory.OST_DuctTerminal)
                         .Cast<FamilyInstance>()
                         .Where(dt => dt.get_Parameter(BuiltInParameter.RBS_SYSTEM_NAME_PARAM).AsString() != null)
-                        .GroupBy(f => f.Space?.Id.IntegerValue)
+                        .GroupBy(DuctTerminalSpaceIdKey)
                         .ToList();
 
                 foreach (Space space in spaceList)
@@ -136,7 +137,7 @@ namespace AirBalance
                         airBalanceProgressBarWPF.label_ItemName.Content = space.Name;
                     });
 
-                    var tmpDuctTerminalGroup = terminalList.SingleOrDefault(e => e.Key == space.Id.IntegerValue);
+                    var tmpDuctTerminalGroup = terminalList.SingleOrDefault(e => e.Key == SpaceIdKey(space));
                     if (tmpDuctTerminalGroup == null) continue;
 
                     var tmpDuctTerminalList = tmpDuctTerminalGroup.ToList();
@@ -180,7 +181,11 @@ namespace AirBalance
                     space.get_Parameter(estimatedExhaustParam.Definition).Set(estimatedExhaust);
                 }
 
-                airBalanceProgressBarWPF.Dispatcher.Invoke(() => airBalanceProgressBarWPF.Close());
+                airBalanceProgressBarWPF.Dispatcher.Invoke(() =>
+                {
+                    airBalanceProgressBarWPF.Close();
+                    System.Windows.Threading.Dispatcher.CurrentDispatcher.InvokeShutdown();
+                });
                 t.Commit();
             }
 
@@ -192,6 +197,25 @@ namespace AirBalance
             airBalanceProgressBarWPF.Show();
             System.Windows.Threading.Dispatcher.Run();
         }
+
+#if REVIT_2025 || REVIT_2026 || REVIT_2027
+        private static long? DuctTerminalSpaceIdKey(FamilyInstance f) =>
+            f.Space == null ? null : f.Space.Id.Value;
+
+        private static long SpaceIdKey(Space space) => space.Id.Value;
+
+        private static bool IsMepSpaceCategory(Space? space) =>
+            space?.Category != null && space.Category.Id.Value == (long)(int)BuiltInCategory.OST_MEPSpaces;
+#else
+        private static long? DuctTerminalSpaceIdKey(FamilyInstance f) =>
+            f.Space == null ? null : f.Space.Id.IntegerValue;
+
+        private static long SpaceIdKey(Space space) => space.Id.IntegerValue;
+
+        private static bool IsMepSpaceCategory(Space? space) =>
+            space?.Category != null && space.Category.Id.IntegerValue.Equals((int)BuiltInCategory.OST_MEPSpaces);
+#endif
+
         private static List<Space> GetSpacesFromCurrentSelection(Document doc, Selection sel)
         {
             ICollection<ElementId> selectedIds = sel.GetElementIds();
@@ -200,7 +224,7 @@ namespace AirBalance
             foreach (ElementId roomId in selectedIds)
             {
                 Space space = doc.GetElement(roomId) as Space;
-                if (space != null && space.Category != null && space.Category.Id.IntegerValue.Equals((int)BuiltInCategory.OST_MEPSpaces))
+                if (IsMepSpaceCategory(space))
                 {
                     tempSpacessList.Add(space);
                 }
@@ -208,8 +232,10 @@ namespace AirBalance
 
             return tempSpacessList;
         }
-        private static void GetPluginStartInfo()
+
+        private static async Task GetPluginStartInfo()
         {
+            // Получаем сборку, в которой выполняется текущий код
             Assembly thisAssembly = Assembly.GetExecutingAssembly();
             string assemblyName = "AirBalance";
             string assemblyNameRus = "Фактический воздухообмен";
@@ -223,10 +249,17 @@ namespace AirBalance
 
             if (type != null)
             {
-                var constructor = type.GetConstructor(new Type[] { typeof(string), typeof(string) });
-                if (constructor != null)
+                // Создание экземпляра класса
+                object instance = Activator.CreateInstance(type);
+
+                // Получение метода CollectPluginUsageAsync
+                var method = type.GetMethod("CollectPluginUsageAsync");
+
+                if (method != null)
                 {
-                    Activator.CreateInstance(type, new object[] { assemblyName, assemblyNameRus });
+                    // Вызов асинхронного метода через reflection
+                    Task task = (Task)method.Invoke(instance, new object[] { assemblyName, assemblyNameRus });
+                    await task;  // Ожидание завершения асинхронного метода
                 }
             }
         }

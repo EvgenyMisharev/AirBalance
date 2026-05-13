@@ -5,6 +5,7 @@ using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
+using System.Windows.Media;
 
 namespace AirBalance
 {
@@ -147,18 +148,38 @@ namespace AirBalance
         }
         private void AirBalanceWPF_KeyDown(object sender, KeyEventArgs e)
         {
-            if (e.Key == Key.Enter || e.Key == Key.Space)
+            if (e.Key == Key.Escape)
             {
-                SaveSettings();
-                this.DialogResult = true;
-                this.Close();
+                DialogResult = false;
+                Close();
+                e.Handled = true;
+                return;
             }
 
-            else if (e.Key == Key.Escape)
+            if (e.Key != Key.Enter && e.Key != Key.Space)
+                return;
+
+            if (Keyboard.FocusedElement is DependencyObject focused && IsInsideTextEntry(focused))
+                return;
+
+            SaveSettings();
+            DialogResult = true;
+            Close();
+            e.Handled = true;
+        }
+
+        private static bool IsInsideTextEntry(DependencyObject? d)
+        {
+            while (d != null)
             {
-                this.DialogResult = false;
-                this.Close();
+                if (d is TextBox)
+                    return true;
+                if (d is ComboBox { IsEditable: true })
+                    return true;
+                d = VisualTreeHelper.GetParent(d);
             }
+
+            return false;
         }
         private void btn_Cancel_Click(object sender, RoutedEventArgs e)
         {
@@ -191,11 +212,10 @@ namespace AirBalance
             EstimatedExhaustParam = comboBox_EstimatedExhaustParam.SelectedItem as Parameter;
             AirBalanceSettingsItem.EstimatedExhaustParamName = EstimatedExhaustParam.Definition.Name;
 
-            CalculationOptionButtonName = (groupBox_CalculationOption.Content as System.Windows.Controls.Grid)
-                .Children.OfType<RadioButton>()
-                .FirstOrDefault(rb => rb.IsChecked.Value == true)
-                .Name;
-
+            var optionGrid = groupBox_CalculationOption.Content as System.Windows.Controls.Grid;
+            var activeRadio = optionGrid?.Children.OfType<RadioButton>()
+                .FirstOrDefault(rb => rb.IsChecked == true);
+            CalculationOptionButtonName = activeRadio?.Name ?? "rbt_AllProject";
             AirBalanceSettingsItem.CalculationOptionButtonName = CalculationOptionButtonName;
 
             AirBalanceSettingsItem.SaveSettings();
